@@ -11,35 +11,37 @@ from semantic_kernel.contents import AuthorRole
 
 """
 This sample demonstrates two LLM agents:
-Chef Bot: Imagines recipes
-Nutrition Coach: Checks meal plans and gives health advice
+Local Insider: Suggests a madrid itinerary from their diaries in a vectorstorre with prices in Euros
+Travel Expert: Adds the total cost of the itinerary and converts to NZD using an API
 
-They 'chat' in a loop until the Nutrition Coach says it's approved.
+The user inputs their budget in NZD and the Local Insider suggests an itinerary.
+The agents 'chat' in a loop until the Travel says the itinerary is within budget.
 """
 
-class MealApprovalTerminationStrategy(TerminationStrategy):
-    """Ends the chat when the Nutrition Coach approves the meal."""
+class ItineraryApprovalTerminationStrategy(TerminationStrategy):
+    """Ends the chat when the Travel Expert approves the itinerary."""
 
     async def should_agent_terminate(self, agent, history):
-        return "meal approved" in history[-1].content.lower()
+        return "itinerary approved" in history[-1].content.lower()
 
 
-CHEF_NAME = "ChefBot"
-CHEF_INSTRUCTIONS = """
-You are a chef. 
-Your job is to suggest a meal recipe with a short ingredient list based on the user input, each ingredient should include the quantity. 
-Your goal is to get the approval of the Nutrition Coach. 
-Always begin with a high calorie meal suggestion and then gradually suggest lower calorie meals each time the nutrition coach declines until the Nutrition Coach approves.
-Do not ask any questions, just suggest a meal.
+LOCAL_INSIDER_NAME = "LocalInsider"
+LOCAL_INSIDER_INSTRUCTIONS = """
+You are a Local Insider in Madrid. 
+Your job is to suggest an itinerary for the user for a whole day in Madrid including times and prices in Eurosfor each activity.
+Your goal is to get the approval of the Travel Expert. 
+Always begin with the most expensive activities in the itenerary and then gradually swap out one high cost activity for a lower cost one each time the travel expert declines until the Travel Expert approves.
+Do not ask any questions, and do not convert to NZD. Just suggest the itinerary.
 """
 
-COACH_NAME = "NutritionCoach"
-COACH_INSTRUCTIONS = """
-You are a nutrition coach. 
-You recieve the recipe from the chef and calculate how many calories it will contain based on each ingredient and the quantity. 
-The calorie limit is 400 calories.
-If the meal is under 400 calories, say meal approved. 
-If the meal is over 400 calories, say it's not approved and ask the chef to suggest a different recipe.
+TRAVEL_EXPERT_NAME = "TravelExpert"
+TRAVEL_EXPERT_INSTRUCTIONS = """
+You are a travel expert. 
+You recieve the itinerary from the local insider and calculate how many much it will cost in total in Euros. You will then convert the total cost to NZD.
+The budget is 50 NZD per day.
+If the itinerary is under 50 NZD, sayexactly the words itinerary approved, not intinerary is approved. 
+If the itinerary is over 50 NZD, say it's not approved and ask the travel expert to suggest a cheaper itinerary.
+Do not ask any questions. And do not mention what the budget is.
 """
 
 
@@ -51,41 +53,41 @@ async def main():
         AzureAIAgent.create_client(credential=creds) as client,
     ):
         # 1. Create the Chef agent
-        chef_definition = await client.agents.create_agent(
+        local_insider_definition = await client.agents.create_agent(
             model=model_deployment_name,
-            name=CHEF_NAME,
-            instructions=CHEF_INSTRUCTIONS,
+            name=LOCAL_INSIDER_NAME,
+            instructions=LOCAL_INSIDER_INSTRUCTIONS,
         )
 
-        chef_agent = AzureAIAgent(
+        local_insider_agent = AzureAIAgent(
             client=client,
-            definition=chef_definition,
+            definition=local_insider_definition,
         )
 
         # 2. Create the Nutrition Coach agent
-        coach_definition = await client.agents.create_agent(
+        travel_expert_definition = await client.agents.create_agent(
             model=model_deployment_name,
-            name=COACH_NAME,
-            instructions=COACH_INSTRUCTIONS,
+            name=TRAVEL_EXPERT_NAME,
+            instructions=TRAVEL_EXPERT_INSTRUCTIONS,
         )
 
-        coach_agent = AzureAIAgent(
+        travel_expert_agent = AzureAIAgent(
             client=client,
-            definition=coach_definition,
+            definition=travel_expert_definition,
         )
 
         # 3. Put them in a group chat with custom termination
         chat = AgentGroupChat(
-            agents=[chef_agent, coach_agent],
-            termination_strategy=MealApprovalTerminationStrategy(
-                agents=[coach_agent], maximum_iterations=10
+            agents=[local_insider_agent, travel_expert_agent],
+            termination_strategy=ItineraryApprovalTerminationStrategy(
+                agents=[travel_expert_agent], maximum_iterations=10
             ),
         )
 
         try:
-            print("Welcome to the Chef + Nutrition Coach Group Chat!")
+            print("Welcome to the Bespoke Travel Agency!")
             print("Type 'exit' or 'quit' to end the chat.\n")
-            user_input = input("What meal do you want? ").strip()
+            user_input = input("Where would you like to go? ").strip()
 
             while user_input.lower() not in ("exit", "quit"):
                 await chat.add_chat_message(message=user_input)
@@ -98,8 +100,8 @@ async def main():
 
         finally:
             await chat.reset()
-            await client.agents.delete_agent(chef_definition.id)
-            await client.agents.delete_agent(coach_definition.id)
+            await client.agents.delete_agent(local_insider_definition.id)
+            await client.agents.delete_agent(travel_expert_definition.id)
 
 
 if __name__ == "__main__":
