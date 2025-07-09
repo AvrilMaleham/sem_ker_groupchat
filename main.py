@@ -6,8 +6,11 @@ import os
 from azure.identity.aio import DefaultAzureCredential
 
 from semantic_kernel.agents import AgentGroupChat, AzureAIAgent, AzureAIAgentSettings
-from semantic_kernel.agents.strategies import TerminationStrategy
 from semantic_kernel.contents import AuthorRole
+
+from agents.local_insider import LOCAL_INSIDER_NAME, LOCAL_INSIDER_INSTRUCTIONS
+from agents.travel_expert import TRAVEL_EXPERT_NAME, TRAVEL_EXPERT_INSTRUCTIONS
+from agents.termination_strategy import ItineraryApprovalTerminationStrategy
 
 """
 This sample demonstrates two LLM agents:
@@ -16,32 +19,6 @@ Travel Expert: Adds the total cost of the itinerary and converts to NZD using an
 
 The user inputs their budget in NZD and the Local Insider suggests an itinerary.
 The agents 'chat' in a loop until the Travel says the itinerary is within budget.
-"""
-
-class ItineraryApprovalTerminationStrategy(TerminationStrategy):
-    """Ends the chat when the Travel Expert approves the itinerary."""
-
-    async def should_agent_terminate(self, agent, history):
-        return "itinerary approved" in history[-1].content.lower()
-
-
-LOCAL_INSIDER_NAME = "LocalInsider"
-LOCAL_INSIDER_INSTRUCTIONS = """
-You are a Local Insider in Madrid. 
-Your job is to suggest an itinerary for the user for a whole day in Madrid including times and prices in Eurosfor each activity.
-Your goal is to get the approval of the Travel Expert. 
-Always begin with the most expensive activities in the itenerary and then gradually swap out one high cost activity for a lower cost one each time the travel expert declines until the Travel Expert approves.
-Do not ask any questions, and do not convert to NZD. Just suggest the itinerary.
-"""
-
-TRAVEL_EXPERT_NAME = "TravelExpert"
-TRAVEL_EXPERT_INSTRUCTIONS = """
-You are a travel expert. 
-You recieve the itinerary from the local insider and calculate how many much it will cost in total in Euros. You will then convert the total cost to NZD.
-The budget is 50 NZD per day.
-If the itinerary is under 50 NZD, sayexactly the words itinerary approved, not intinerary is approved. 
-If the itinerary is over 50 NZD, say it's not approved and ask the travel expert to suggest a cheaper itinerary.
-Do not ask any questions. And do not mention what the budget is.
 """
 
 
