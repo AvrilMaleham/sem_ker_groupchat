@@ -9,7 +9,7 @@ from semantic_kernel.agents import AgentGroupChat, AzureAIAgent, AzureAIAgentSet
 from semantic_kernel.contents import AuthorRole
 
 from agents.local_insider import LOCAL_INSIDER_NAME, LOCAL_INSIDER_INSTRUCTIONS
-from agents.travel_expert import TRAVEL_EXPERT_NAME, TRAVEL_EXPERT_INSTRUCTIONS
+from agents.travel_expert import TRAVEL_EXPERT_NAME, TRAVEL_EXPERT_INSTRUCTIONS, load_openapi_tools
 from agents.termination_strategy import ItineraryApprovalTerminationStrategy
 
 """
@@ -29,7 +29,7 @@ async def main():
         DefaultAzureCredential() as creds,
         AzureAIAgent.create_client(credential=creds) as client,
     ):
-        # 1. Create the Chef agent
+    
         local_insider_definition = await client.agents.create_agent(
             model=model_deployment_name,
             name=LOCAL_INSIDER_NAME,
@@ -41,11 +41,14 @@ async def main():
             definition=local_insider_definition,
         )
 
-        # 2. Create the Nutrition Coach agent
+
+        openapi_tools = load_openapi_tools()
+
         travel_expert_definition = await client.agents.create_agent(
             model=model_deployment_name,
             name=TRAVEL_EXPERT_NAME,
             instructions=TRAVEL_EXPERT_INSTRUCTIONS,
+            tools=openapi_tools.definitions,
         )
 
         travel_expert_agent = AzureAIAgent(
@@ -53,7 +56,7 @@ async def main():
             definition=travel_expert_definition,
         )
 
-        # 3. Put them in a group chat with custom termination
+   
         chat = AgentGroupChat(
             agents=[local_insider_agent, travel_expert_agent],
             termination_strategy=ItineraryApprovalTerminationStrategy(
