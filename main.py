@@ -30,12 +30,8 @@ async def main():
         AzureAIAgent.create_client(credential=creds) as client,
     ):
     
-        file_search, file, vector_store = await load_file_search_tool(client)
+        file_search, file_ids, vector_store = await load_file_search_tool(client)
         
-        
-
-
-
         local_insider_definition = await client.agents.create_agent(
             model=model_deployment_name,
             name=LOCAL_INSIDER_NAME,
@@ -75,7 +71,7 @@ async def main():
         try:
             print("Welcome to the Bespoke Travel Agency!")
             print("Type 'exit' or 'quit' to end the chat.\n")
-            user_input = input("Where would you like to go? ").strip()
+            user_input = input("Where would you like to go? Type your destination (Madrid, Iceland, or Santorini) ").strip()
 
             while user_input.lower() not in ("exit", "quit"):
                 await chat.add_chat_message(message=user_input)
@@ -91,7 +87,9 @@ async def main():
             await client.agents.delete_agent(local_insider_definition.id)
             await client.agents.delete_agent(travel_expert_definition.id)
             await client.agents.vector_stores.delete(vector_store.id)
-            await client.agents.files.delete(file.id)
+            # Delete all uploaded files
+            for file_id in file_ids:
+                await client.agents.files.delete(file_id)
             
 
 

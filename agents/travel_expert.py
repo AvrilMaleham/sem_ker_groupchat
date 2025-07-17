@@ -16,7 +16,7 @@ IMPORTANT: You MUST use the get_convert tool to get the current exchange rates f
 
 The API will return exchange rates for EUR to all currencies. Look for the "NZD" rate in the response and multiply the total Euro cost by that rate to get the NZD equivalent.
 
-The budget is 50 NZD per day.
+The budget is 100 NZD per day.
 If the converted amount is under 50 NZD, say exactly the words "itinerary approved".
 If the converted amount is over 50 NZD, say "it's not approved" and ask the local insider to suggest a cheaper itinerary.
 
